@@ -1,7 +1,10 @@
 import discord
 from discord.ext.commands import cooldown, BucketType, guild_only
 
+from asyncio import sleep
 from ._utils import *
+from .. import db
+from ..bot import DozerContext
 
 blurple = discord.Color.blurple()
 datetime_format = '%Y-%m-%d %I:%M %p'
@@ -9,6 +12,10 @@ datetime_format = '%Y-%m-%d %I:%M %p'
 
 class Info(Cog):
     """Commands for getting information about people and things on Discord."""
+
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.afk_map = {}
 
     @guild_only()
     @cooldown(1, 10, BucketType.channel)
@@ -74,6 +81,47 @@ class Info(Cog):
     `{prefix}guild` - get information about this guild
     """
 
+    @guild_only()
+    @command()
+    async def afk(self, ctx, *, reason : str = "Not specified"):
+        """Set yourself to AFK so that if you are pinged, the bot can explain your absence."""
+        await ctx.send("Command handler!")
+        if len(ctx.message.mentions):
+            await ctx.send("Please don't mention anyone in your AFK message!")
+            return
+
+        afk_status = self.afk_map.get(ctx.author.id)
+        if not afk_status is None:
+            afk_status.reason = reason
+        else:
+            afk_status = AFKStatus(user_id=ctx.author.id, reason=reason)
+            self.afk_map[ctx.author.id] = afk_status
+
+        await ctx.send(embed=discord.Embed(description=f"**{ctx.author.name}** is AFK: **{reason}**"))
+    afk.example_usage = """
+    `{prefix}afk robot building` - set yourself to AFK for reason "reason"
+    """
+
+
+    async def on_message(self, message):
+        ctx = await self.bot.get_context(message)
+        if message.content.strip().startswith(f"{ctx.prefix}afk"):
+            await message.channel.send("afk command skip")
+            return
+
+        for member in message.mentions:
+            if member.id in self.afk_map:
+                await ctx.send(embed=discord.Embed(description=f"**{member.name}** is AFK: **{self.afk_map[member.id].reason}**"))
+
+        afk_status = self.afk_map.get(ctx.author.id)
+        if not afk_status is None:
+            await ctx.send(f"**{ctx.author.name}** is no longer AFK!")
+            del self.afk_map[ctx.author.id]
+
+class AFKStatus(db.DatabaseObject):
+    __tablename__ = "afk_status"
+    user_id = db.Column(db.Integer, primary_key=True)
+    reason = db.Column(db.String)
 
 def setup(bot):
     bot.add_cog(Info(bot))
