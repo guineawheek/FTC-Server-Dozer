@@ -85,7 +85,6 @@ class Info(Cog):
     @command()
     async def afk(self, ctx, *, reason : str = "Not specified"):
         """Set yourself to AFK so that if you are pinged, the bot can explain your absence."""
-        await ctx.send("Command handler!")
         if len(ctx.message.mentions):
             await ctx.send("Please don't mention anyone in your AFK message!")
             return
@@ -106,7 +105,6 @@ class Info(Cog):
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
         if message.content.strip().startswith(f"{ctx.prefix}afk"):
-            await message.channel.send("afk command skip")
             return
 
         for member in message.mentions:
