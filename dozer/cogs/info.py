@@ -1,10 +1,8 @@
 import discord
 from discord.ext.commands import cooldown, BucketType, guild_only
 
-from asyncio import sleep
 from ._utils import *
 from .. import db
-from ..bot import DozerContext
 
 blurple = discord.Color.blurple()
 datetime_format = '%Y-%m-%d %I:%M %p'
