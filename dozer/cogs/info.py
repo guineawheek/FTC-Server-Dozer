@@ -1,3 +1,4 @@
+"""Provides commands for pulling certain information."""
 import discord
 from discord.ext.commands import cooldown, BucketType, guild_only
 
@@ -122,4 +123,5 @@ class AFKStatus(db.DatabaseObject):
     reason = db.Column(db.String)
 
 def setup(bot):
+    """Adds the info cog to the bot"""
     bot.add_cog(Info(bot))
