@@ -1,4 +1,9 @@
 """Provides commands for pulling certain information."""
+import time
+import re
+import datetime
+import resource
+
 import discord
 from discord.ext.commands import cooldown, BucketType, guild_only
 
@@ -7,7 +12,13 @@ from .. import db
 
 blurple = discord.Color.blurple()
 datetime_format = '%Y-%m-%d %I:%M %p'
+startup_time = time.time()
 
+try:
+    with open("/etc/os-release") as f:
+        os_name = re.findall(r'PRETTY_NAME=\"(.+?)\"', f.read())[0]
+except Exception:
+    os_name = "Windows probably"
 
 class Info(Cog):
     """Commands for getting information about people and things on Discord."""
@@ -82,7 +93,26 @@ class Info(Cog):
     `{prefix}guild` - get information about this guild
     """
 
-    @guild_only()
+    @command()
+    async def stats(self, ctx):
+        info = await ctx.bot.application_info()
+
+        #e = discord.Embed(title=info.name + " Stats", color=discord.Color.blue())
+        frame = "\n".join(map(lambda x: f"{str(x[0]):<24}{str(x[1])}", { #e.add_field(name=x[0], value=x[1], inline=False), {
+            "{:=^48}".format(f" Stats for {info.name} "): "",
+            "Bot owner:": info.owner,
+            "Users:": len(ctx.bot.users),
+            "Channels:": len(list(ctx.bot.get_all_channels())),
+            "Servers:": len(ctx.bot.guilds),
+            "":"",
+            f"{' Host stats ':=^48}": "",
+            "Operating system:": os_name,
+            "Process memory usage:": f"{resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}K",
+            "Process uptime": str(datetime.timedelta(seconds=round(time.time() - startup_time)))
+        }.items()))
+        await ctx.send(f"```\n{frame}\n```")#embed=e)
+
+
     @command()
     async def afk(self, ctx, *, reason : str = "Not specified"):
         """Set yourself to AFK so that if you are pinged, the bot can explain your absence."""
@@ -102,7 +132,6 @@ class Info(Cog):
     `{prefix}afk robot building` - set yourself to AFK for reason "reason"
     """
 
-
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
         if message.content.strip().startswith(f"{ctx.prefix}afk"):
@@ -113,7 +142,7 @@ class Info(Cog):
                 await ctx.send(embed=discord.Embed(description=f"**{member.name}** is AFK: **{self.afk_map[member.id].reason}**"))
 
         afk_status = self.afk_map.get(ctx.author.id)
-        if not afk_status is None:
+        if afk_status is not None:
             await ctx.send(f"**{ctx.author.name}** is no longer AFK!")
             del self.afk_map[ctx.author.id]
 
