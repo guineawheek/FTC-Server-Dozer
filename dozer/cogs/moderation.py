@@ -434,6 +434,37 @@ class Moderation(Cog):
     `{prefix}prune 10` - Delete the last 10 messages in the current channel.
     """
 
+    @command(aliases=["clearreacts"])
+    @has_permissions(manage_messages=True)
+    @bot_has_permissions(manage_messages=True)
+    async def clearreactions(self, ctx, message_id: int, channel: discord.TextChannel = None):
+        """Clear the reactions from a message, given its id and optionally a channel."""
+        chn = channel or ctx.channel
+        try:
+            message = await chn.get_message(message_id)
+        except discord.NotFound:
+            await ctx.send(f"Message {message_id} not found in channel {chn.mention}!")
+            return
+        await message.clear_reactions()
+        await ctx.send(f"Cleared reactions from message {message_id}")
+
+    clearreactions.example_usage = """
+    `{prefix}clearreactions 481021088046907392 #general` - clear all reactions from messageid 481021088046907392 in #general
+    """
+
+    @command(aliases=["bulkclearreacts"])
+    @has_permissions(manage_messages=True)
+    @bot_has_permissions(manage_messages=True)
+    async def bulkclearreactions(self, ctx, num_to_clear: int, channel: discord.TextChannel = None):
+        """Clears the reactions of the last x messages in a channel"""
+        chn = channel or ctx.channel
+        async for message in chn.history(limit=num_to_clear):
+            await message.clear_reactions()
+        await ctx.send(f"Cleared reactions on {num_to_clear} messages in {channel.mention}")
+    bulkclearreactions.example_usage = """
+    `{prefix}bulkclearreactions 50 #general` - clear all reactions from the last 50 messages in #general
+    """
+
     @command()
     @has_permissions(ban_members=True)
     @bot_has_permissions(ban_members=True)
