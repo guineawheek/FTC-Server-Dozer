@@ -43,3 +43,6 @@ class NicknameTable(db.DatabaseObject):
     guild_id = db.Column(db.Integer, primary_key=True)
     nickname = db.Column(db.String, nullable=True)
     enabled = db.Column(db.Boolean)
+
+def setup(bot):
+    bot.add_cog(Nicknames(bot))
