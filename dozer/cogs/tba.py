@@ -56,6 +56,15 @@ class TBA(Cog):
         else:
             raise BadArgument("Couldn't find data for team {}".format(team_num))
 
+    #@tba.command()
+    @bot_has_permissions(embed_links=True)
+    async def team_excali(self, ctx, team_num: int):
+        data = self.parser.get_team(team_num)
+        try:
+            getattr(data, "Errors")
+        except tbapi.InvalidKeyError:
+            e = discord.Embed(color=blurple, title=f"FIRST® Robotics Competition Team {team_num}")
+
     team.example_usage = """
     `{prefix}tba team 4131` - show information on team 4131, the Iron Patriots
     """

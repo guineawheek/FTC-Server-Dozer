@@ -111,6 +111,7 @@ class Teams(Cog):
 
     async def on_member_join(self, member):
         """Adds a user's team association to their name when they join (if exactly 1 association)"""
+        if True: return
         if member.guild.me.guild_permissions.manage_nicknames:
             with db.Session() as session:
                 query = session.query(TeamNumbers).filter_by(user_id=member.id).first()
