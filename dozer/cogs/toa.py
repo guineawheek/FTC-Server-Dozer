@@ -32,13 +32,6 @@ class TOA(Cog):
     """
 
     @toa.command()
-    async def raw(self, ctx, endpoint):
-        if ctx.author.id != 259430296636751873:
-            await ctx.send("{ctx.author.mention}, you are not a developer!")
-            return
-        await ctx.send(f"```json\n{await self.parser.req(endpoint)}```")
-
-    @toa.command()
     @bot_has_permissions(embed_links=True)
     async def team(self, ctx, team_num: int):
         """Get information on an FTC team by number."""
