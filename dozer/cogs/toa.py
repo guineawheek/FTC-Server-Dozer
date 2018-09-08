@@ -46,7 +46,7 @@ class TOA(Cog):
             }]
         })
         last_season = data['seasons'][0]
-        #team_data.rookie_year = data['rookie_year']
+        team_data.rookie_year = data['rookie_year']
 
         if team_data.error:
             if team_num not in self._teams:
