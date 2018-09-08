@@ -32,20 +32,28 @@ class TOA(Cog):
     """
 
     @toa.command()
+    async def raw(self, ctx, endpoint):
+        if ctx.author.id != 259430296636751873:
+            await ctx.send("{ctx.author.mention}, you are not a developer!")
+            return
+        await ctx.send(f"```json\n{await self.parser.req(endpoint)}```")
+
+    @toa.command()
     @bot_has_permissions(embed_links=True)
     async def team(self, ctx, team_num: int):
         """Get information on an FTC team by number."""
         team_data = await self.parser.req("team/" + str(team_num))
+        # UPDATE: no longer broken
         # TOA's rookie year listing is :b:roke, so we have to fix it ourselves
         # This is a _nasty_ hack
         data = self._teams.get(team_num, {
-            'rookie_year': 2017,
+            'rookie_year': 2018,
             'seasons': [{
                 'website': 'n/a',
             }]
         })
         last_season = data['seasons'][0]
-        team_data.rookie_year = data['rookie_year']
+        #team_data.rookie_year = data['rookie_year']
 
         if team_data.error:
             if team_num not in self._teams:
@@ -72,7 +80,7 @@ class TOA(Cog):
         await ctx.send('', embed=e)
 
     team.example_usage = """
-    `{prefix}toa team 12670` - show information on team 12670, Eclipse
+    `{prefix}toa team 11115` - show information on team 11115, Gluten Free
     """
 
 

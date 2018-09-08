@@ -14,7 +14,7 @@ class TOAParser:
     A class to make async requests to The Orange Alliance.
     """
 
-    def __init__(self, api_key, aiohttp_session, base_url="https://theorangealliance.org/apiv2/", app_name="Dozer",
+    def __init__(self, api_key, aiohttp_session, base_url="https://theorangealliance.org/api/", app_name="Dozer",
                  ratelimit=True):
         self.last_req = datetime.now()
         self.ratelimit = ratelimit
@@ -22,7 +22,8 @@ class TOAParser:
         self.http = aiohttp_session
         self.headers = {
             "X-Application-Origin": app_name,
-            "X-TOA-Key": api_key
+            "X-TOA-Key": api_key,
+            "Content-Type": "application/json"
         }
 
     async def req(self, endpoint):
@@ -39,9 +40,13 @@ class TOAParser:
             try:
                 async with async_timeout.timeout(5) as _, self.http.get(urljoin(self.base, endpoint),
                                                                         headers=self.headers) as response:
+                    # useful debugging lines:
+                    # print(response.status)
+                    # print(response.headers)
+                    # print(await response.text())
                     res = TOAResponse()
                     # it seems sometimes toa forgets to return data as application/json and not text/html
-                    data = json.loads(await response.text())
+                    data = await response.json() #json.loads(await response.text())
                     if data:
                         res._update(data[0])
                     else:
