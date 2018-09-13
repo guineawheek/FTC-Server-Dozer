@@ -14,6 +14,7 @@ config = {
     'toa': {
         'key': 'Put TOA API key here',
         'app_name': 'Dozer',
+        'teamdata_url': ''
     },
     'gmaps_key': "PUT GOOGLE MAPS API KEY HERE",
     'discord_token': "Put Discord API Token here.",
