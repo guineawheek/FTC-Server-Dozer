@@ -116,7 +116,7 @@ class Reactor:
         self.message = None
 
     async def __aiter__(self):
-        self.message = await self.dest.send(embed=self.pages[self.page])
+        self.message = await self._post_page(self.dest.send, self.pages[self.page])
         for emoji in self._reactions:
             await self.message.add_reaction(emoji)
         while True:
@@ -148,6 +148,14 @@ class Reactor:
 
     def _check_reaction(self, reaction, member):
         return reaction.message.id == self.message.id and member.id == self.caller.id
+
+    def _post_page(self, func, page):
+        if isinstance(page, tuple):
+            return func(content=page[0], embed=page[1])
+        elif isinstance(page, str):
+            return func(content=page, embed=None)
+        else:
+            return func(content=None, embed=page)
 
 
 class Paginator(Reactor):
@@ -215,7 +223,7 @@ class Paginator(Reactor):
             if page < 0:
                 page += self.len_pages
         self.page = page
-        self.do(self.message.edit(embed=self.pages[self.page]))
+        self.do(self._post_page(self.message.edit, self.pages[self.page]))
 
     def next(self, amt=1):
         """Goes to the next help page"""

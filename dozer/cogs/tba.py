@@ -1,11 +1,13 @@
 """A series of commands that talk to The Blue Alliance."""
 import datetime
 from datetime import timedelta
+from pprint import pformat
 
 import discord
 from discord.ext.commands import BadArgument
 import googlemaps
-import tbapi
+#import tbapi
+import aiotba
 from geopy.geocoders import Nominatim
 
 from ._utils import *
@@ -19,7 +21,8 @@ class TBA(Cog):
         super().__init__(bot)
         tba_config = bot.config['tba']
         self.gmaps_key = bot.config['gmaps_key']
-        self.parser = tbapi.TBAParser(tba_config['key'], cache=False)
+        self.session = aiotba.TBASession(tba_config['key'], self.bot.http._session)
+        #self.parser = tbapi.TBAParser(tba_config['key'], cache=False)
 
     @group(invoke_without_command=True)
     async def tba(self, ctx, team_num: int):
@@ -37,10 +40,8 @@ class TBA(Cog):
     @bot_has_permissions(embed_links=True)
     async def team(self, ctx, team_num: int):
         """Get information on an FRC team by number."""
-        team_data = self.parser.get_team(team_num)
         try:
-            getattr(team_data, "Errors")
-        except tbapi.InvalidKeyError:
+            team_data = await self.session.team(team_num)
             e = discord.Embed(color=blurple)
             e.set_author(name='FIRST® Robotics Competition Team {}'.format(team_num),
                          url='https://www.thebluealliance.com/team/{}'.format(team_num),
@@ -53,40 +54,68 @@ class TBA(Cog):
             e.add_field(name='TBA Link', value='https://www.thebluealliance.com/team/{}'.format(team_num))
             e.set_footer(text='Triggered by ' + ctx.author.display_name)
             await ctx.send(embed=e)
-        else:
+        except aiotba.http.AioTBAError:
             raise BadArgument("Couldn't find data for team {}".format(team_num))
-
-    #@tba.command()
-    @bot_has_permissions(embed_links=True)
-    async def team_excali(self, ctx, team_num: int):
-        data = self.parser.get_team(team_num)
-        try:
-            getattr(data, "Errors")
-        except tbapi.InvalidKeyError:
-            e = discord.Embed(color=blurple, title=f"FIRST® Robotics Competition Team {team_num}")
 
     team.example_usage = """
     `{prefix}tba team 4131` - show information on team 4131, the Iron Patriots
     """
 
     @tba.command()
+    @bot_has_permissions(embed_links=True)
+    async def media(self, ctx, team_num: int, year: int=None):
+        if year is None:
+            year = datetime.datetime.today().year
+        try:
+            team_media = await self.session.team_media(team_num, year)
+            if not team_media:
+                await ctx.send(f"Unfortunately, there doesn't seem to be any media for team {team_num} in {year}...")
+                return
+
+            pages = []
+            base = f"FRC Team {team_num} {year} Media: "
+            for media in team_media:
+                if media.type == "cdphotothread":
+                    page = discord.Embed(title=base + "Chief Delphi",
+                                         url=f"https://www.chiefdelphi.com/media/photos/{media.foreign_key}")
+                    page.set_image(url=f"https://www.chiefdelphi.com/media/img/{media.details['image_partial']}")
+                elif media.type == "imgur":
+                    page = discord.Embed(title=base + "Imgur",
+                                         url=f"https://imgur.com/{media.foreign_key}")
+                    page.set_image(url=f"https://i.imgur.com/{media.foreign_key}.png")
+                elif media.type == "instagram-image":
+                    page = discord.Embed(title=base + "Instagram",
+                                         url=f"https://www.instagram.com/p/{media.foreign_key}")
+                    page.set_image(url=f"https://www.instagram.com/p/{media.foreign_key}/media")
+                elif media.type == "youtube":
+                    page = f"**{base} YouTube** \nhttps://youtu.be/{media.foreign_key}"
+                elif media.type == "grabcad":
+                    page = discord.Embed(title=base + "GrabCAD",
+                                         url=f"https://grabcad.com/library/{media.foreign_key}")
+                    page.set_image(url=media.details['model_image'])
+                else:
+                    continue
+                pages.append(page)
+            await paginate(ctx, pages)
+
+        except aiotba.http.AioTBAError:
+            raise BadArgument("Couldn't find data for team {}".format(team_num))
+    @tba.command()
     async def raw(self, ctx, team_num: int):
         """
         Get raw TBA API output for a team.
         This command is really only useful for development.
         """
-        team_data = self.parser.get_team(team_num)
         try:
-            getattr(team_data, "Errors")
-        except tbapi.InvalidKeyError:
+            team_data = await self.session.team(team_num)
             e = discord.Embed(color=blurple)
             e.set_author(name='FIRST® Robotics Competition Team {}'.format(team_num),
                          url='https://www.thebluealliance.com/team/{}'.format(team_num),
                          icon_url='https://frcavatars.herokuapp.com/get_image?team={}'.format(team_num))
-            e.add_field(name='Raw Data', value=team_data.flatten())
+            e.add_field(name='Raw Data', value=pformat(team_data.__dict__))
             e.set_footer(text='Triggered by ' + ctx.author.display_name)
             await ctx.send(embed=e)
-        else:
+        except aiotba.http.AioTBAError:
             raise BadArgument('Team {} does not exist.'.format(team_num))
 
     raw.example_usage = """
@@ -99,10 +128,8 @@ class TBA(Cog):
         Get the timezone of a team based on the team number.
         """
 
-        team_data = self.parser.get_team(team_num)
         try:
-            getattr(team_data, "Errors")
-        except tbapi.InvalidKeyError:
+            team_data = await self.session.team(team_num)
             location = '{0.city}, {0.state_prov} {0.country}'.format(team_data)
             gmaps = googlemaps.Client(key=self.gmaps_key)
             geolocator = Nominatim()
@@ -135,7 +162,7 @@ class TBA(Cog):
             await ctx.send(
                 "Timezone: {0} UTC{1:+g} \nCurrent Time: {2}:{3}:{4} {5} ({6}:{3}:{4})".format(
                     timezone["timeZoneName"], utc_offset, current_hour, current_minute, current_second, dayTime, current_hour_original))
-        else:
+        except aiotba.http.AioTBAError:
             raise BadArgument('Team {} does not exist.'.format(team_num))
 
     timezone.example_usage = """
