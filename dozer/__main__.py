@@ -19,6 +19,7 @@ config = {
     },
     'db_url': 'sqlite:///dozer.db',
     'gmaps_key': "PUT GOOGLE MAPS API KEY HERE",
+    'tz_url': '',
     'discord_token': "Put Discord API Token here.",
     'is_backup': False
 }
