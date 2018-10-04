@@ -190,7 +190,6 @@ class TBA(Cog):
                 raise BadArgument('Team {} does not exist.'.format(team_num))
             td = TeamData()
             td.__dict__.update(team_data_dict['seasons'][0])
-            print(td.__dict__)
         else:
             raise BadArgument('`team_program` should be one of [`frc`, `ftc`]')
 

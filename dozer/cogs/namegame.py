@@ -6,7 +6,7 @@ import traceback
 from collections import OrderedDict
 from functools import wraps
 
-import tbapi
+import aiotba
 import discord
 from discord.ext.commands import has_permissions
 from fuzzywuzzy import fuzz
@@ -81,43 +81,39 @@ class NameGameSession():
         self.vote_embed = None
         self.vote_task = None
 
-    def create_embed(self, title="", description="", color=discord.Color.blurple(), extra_fields=[], start=False):
+    def create_embed(self, title="", description="", color=discord.Color.blurple(), extra_fields=None, start=False):
         """Creates an embed."""
+        extra_fields = extra_fields or []
         v = "Starting " if start else "Current "
-        embed = discord.Embed()
-        embed.title = title
-        embed.description = description
-        embed.color = color
+        embed = discord.Embed(title=title, description=description, color=color)
         embed.add_field(name="Players", value=", ".join([p.display_name for p in self.players.keys()]) or "n/a")
         embed.add_field(name=v + "Player", value=self.current_player)
         embed.add_field(name=v + "Number", value=self.number or "Wildcard")
-        embed.add_field(name="Time Left", value=self.time)
+        embed.add_field(name="Time Left", value=str(self.time))
 
         for name, value in extra_fields:
             embed.add_field(name=name, value=value)
         return embed
 
-    def check_name(self, ctx, team, name):
+    async def check_name(self, ctx, team, name):
         """Checks the name of the team"""
         tba_parser = ctx.cog.tba_parser
-        ftc_teams = ctx.cog.ftc_teams
 
         actual_name = ""
 
         if self.mode == "frc":
             # check for existence
-            team_data = tba_parser.get_team(team)
             try:
-                getattr(team_data, "Errors")
-            except tbapi.InvalidKeyError:
-                """There is no error, so do nothing"""
-            else:
+                team_data = await tba_parser.team(team)
+            except aiotba.http.AioTBAError:
+                # oopsy whoopsy guess it doesn't exist
                 return -1
             actual_name = team_data.nickname
         elif self.mode == "ftc":
-            if team not in ftc_teams:
+            team_data = await ctx.bot.cogs["TOA"].get_teamdata(team)
+            if not team_data:  # doesn't exist
                 return -1
-            actual_name = ftc_teams[team]
+            actual_name = team_data['seasons'][0]['name']
 
         self.last_name = actual_name
         self.last_team = team
@@ -165,7 +161,7 @@ class NameGame(Cog):
         self.games = {}
 
         tba_config = bot.config['tba']
-        self.tba_parser = tbapi.TBAParser(tba_config['key'], cache=False)
+        self.tba_parser = aiotba.TBASession(tba_config['key'], self.bot.http._session)  # tbapi.TBAParser(tba_config['key'], cache=False)
 
     @group(invoke_without_command=True)
     async def ng(self, ctx):
@@ -180,7 +176,8 @@ class NameGame(Cog):
             ng skip
             ng gameinfo
         """
-        await self.info.callback(self, ctx)
+        # await self.info.callback(self, ctx)
+        await ctx.send(f"Please pick a subcommand: `{ctx.prefix}ng {{info|startround|addplayer|pick|drop|skip|gameinfo}}`")
 
     ng.example_usage = """
     `{prefix}ng` - show a description on how the robotics team namegame works. 
@@ -190,8 +187,7 @@ class NameGame(Cog):
     @bot_has_permissions(embed_links=True)
     async def info(self, ctx):
         """Show a description of the robotics team name game and how to play."""
-        game_embed = discord.Embed()
-        game_embed.color = discord.Color.magenta()
+        game_embed = discord.Embed(color=discord.Color.magenta())
         game_embed.title = "How to play"
         game_embed.description = "This is a very simple little game where players will name a team number and name that " \
                                  "starts with the last digit of the last named team. Some more specific rules are below:"
@@ -487,7 +483,7 @@ class NameGame(Cog):
                                        "That team has already been picked! You have been skipped and given a strike.")
                 return
 
-            ratio = game.check_name(ctx, team, name)
+            ratio = await game.check_name(ctx, team, name)
             if ratio == -1:
                 # nonexistant team
                 await self.skip_player(ctx, game, ctx.author,
