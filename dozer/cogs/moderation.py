@@ -479,6 +479,12 @@ class Moderation(Cog):
     """
 
     @command()
+    @has_permissions(manage_channels=True)
+    @bot_has_permissions(manage_channels=True)
+    async def slowmode(self, ctx, slowmode_delay: int):
+        await ctx.channel.edit(slowmode_delay=slowmode_delay, reason=f"Adjusted slowmode at request of {ctx.author}")
+
+    @command()
     @has_permissions(ban_members=True)
     @bot_has_permissions(ban_members=True)
     async def ban(self, ctx, user_mention: discord.User, *, reason="No reason provided"):
