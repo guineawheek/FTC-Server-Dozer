@@ -105,7 +105,7 @@ class TBA(Cog):
                         "cdphotothread": (
                             "Chief Delphi",
                             "https://www.chiefdelphi.com/media/photos/{media.foreign_key}",
-                            "https://www.chiefdelphi.com/media/img/{media.details.get('image_partial')}"
+                            "https://www.chiefdelphi.com/media/img/{media.details[image_partial]}"
                         ),
                         "imgur": (
                             "Imgur",
@@ -120,7 +120,7 @@ class TBA(Cog):
                         "grabcad": (
                             "GrabCAD",
                             "https://grabcad.com/library/{media.foreign_key}",
-                            "{media.details.get('model_image')}"
+                            "{media.details[model_image]}"
                         )
                     }.get(media.type, (None, None, None))
                     if name is None:
