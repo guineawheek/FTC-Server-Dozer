@@ -46,21 +46,35 @@ class TBA(Cog):
         """Get information on an FRC team by number."""
         try:
             team_data = await self.session.team(team_num)
-            e = discord.Embed(color=blurple,
-                              title='FIRST® Robotics Competition Team {}'.format(team_num),
-                              url='https://www.thebluealliance.com/team/{}'.format(team_num))
-            e.set_thumbnail(url='https://frcavatars.herokuapp.com/get_image?team={}'.format(team_num))
-            e.add_field(name='Name', value=team_data.nickname)
-            e.add_field(name='Rookie Year', value=team_data.rookie_year)
-            e.add_field(name='Location',
-                        value='{0.city}, {0.state_prov} {0.postal_code}, {0.country}'.format(team_data))
-            e.add_field(name='Website', value=team_data.website)
-            e.add_field(name='Championship', value=team_data.home_championship[datetime.datetime.today().year])
-            #e.add_field(name='TBA Link', value='https://www.thebluealliance.com/team/{}'.format(team_num))
-            e.set_footer(text='Triggered by ' + ctx.author.display_name)
-            await ctx.send(embed=e)
+            team_district_data = await self.session.team_districts(team_num)
+            if team_district_data:
+                team_district = max(team_district_data, key=lambda d: d.year)
+
         except aiotba.http.AioTBAError:
             raise BadArgument("Couldn't find data for team {}".format(team_num))
+        e = discord.Embed(color=blurple,
+                          title='FIRST® Robotics Competition Team {}'.format(team_num),
+                          url='https://www.thebluealliance.com/team/{}'.format(team_num))
+        e.set_thumbnail(url='https://frcavatars.herokuapp.com/get_image?team={}'.format(team_num))
+        e.add_field(name='Name', value=team_data.nickname)
+        e.add_field(name='Rookie Year', value=team_data.rookie_year)
+        e.add_field(name='Location',
+                    value='{0.city}, {0.state_prov} {0.postal_code}, {0.country}'.format(team_data))
+        e.add_field(name='Website', value=team_data.website)
+        if team_district_data:
+            e.add_field(name='District', value=f"{team_district.display_name} [{team_district.abbreviation.upper()}]")
+        e.add_field(name='Championship', value=team_data.home_championship[max(team_data.home_championship.keys())])
+        #e.add_field(name='TBA Link', value='https://www.thebluealliance.com/team/{}'.format(team_num))
+        e.set_footer(text='Triggered by ' + ctx.author.display_name)
+        await ctx.send(embed=e)
+    @tba.command()
+    @bot_has_permissions(embed_links=True)
+    async def eventsfor(self, ctx, team_num: int):
+        try:
+            team_data = await self.session.team_events(team_num, year=2018)
+        except aiotba.http.AioTBAError:
+            raise BadArgument("Couldn't find data for team {}".format(team_num))
+
 
     team.example_usage = """
     `{prefix}tba team 4131` - show information on team 4131, the Iron Patriots
@@ -98,7 +112,7 @@ class TBA(Cog):
                             "https://i.imgur.com/{media.foreign_key}.png"
                         ),
                         "instagram-image": (
-                           "instagram",
+                            "instagram",
                             "https://www.instagram.com/p/{media.foreign_key}",
                             "https://www.instagram.com/p/{media.foreign_key}/media"
                         ),
@@ -126,10 +140,12 @@ class TBA(Cog):
 
     @tba.command()
     @bot_has_permissions(embed_links=True)
-    async def awards(self, ctx, team_num: int, year: int=None):
+    async def awards(self, ctx, team_num: int, year: int = None):
         """Gets a list of awards the specified team has won during a year. """
         try:
             awards_data = await self.session.team_awards(team_num, year=year)
+            events_data = await self.session.team_events(team_num, year=year)
+            event_key_map = {event.key: event for event in events_data}
         except aiotba.http.AioTBAError:
             raise BadArgument("Couldn't find data for team {}".format(team_num))
 
@@ -137,7 +153,9 @@ class TBA(Cog):
         for year, awards in itertools.groupby(awards_data, lambda a: a.year):
             e = discord.Embed(title=f"Awards for FRC Team {team_num} in {year}:", color=blurple)
             for event_key, event_awards in itertools.groupby(list(awards), lambda a: a.event_key):
-                e.add_field(name=event_key, value="\n".join(map(lambda a: a.name, event_awards)), inline=False)
+                event = event_key_map[event_key]
+                e.add_field(name=f"{event.name} [{event_key}]",
+                            value="\n".join(map(lambda a: a.name, event_awards)), inline=False)
 
             pages.append(e)
         if len(pages) > 1:
@@ -147,8 +165,8 @@ class TBA(Cog):
         else:
             await ctx.send(f"This team hasn't won any awards in {year}" if year is not None else "This team hasn't won any awards...yet.")
 
-    media.example_usage = """
-    `{prefix}`tba media 1114` - list all the awards team 1114 Simbotics has ever gotten.
+    awards.example_usage = """
+    `{prefix}`tba awards 1114` - list all the awards team 1114 Simbotics has ever gotten.
     """
 
     @tba.command()
@@ -190,9 +208,13 @@ class TBA(Cog):
                 raise BadArgument('Team {} does not exist.'.format(team_num))
             td = TeamData()
             td.__dict__.update(team_data_dict['seasons'][0])
+
         else:
             raise BadArgument('`team_program` should be one of [`frc`, `ftc`]')
 
+        # REEEEEEEEEEEE
+        if td.country == "USA":
+            td.country = "United States of America"
         e = discord.Embed(title=f"Current weather for {team_program.upper()} Team {team_num}:")
         e.set_image(url="https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0.png"))
         e.set_footer(text="Powered by wttr.in and sometimes TBA")
