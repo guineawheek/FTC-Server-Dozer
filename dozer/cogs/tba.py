@@ -46,12 +46,15 @@ class TBA(Cog):
         """Get information on an FRC team by number."""
         try:
             team_data = await self.session.team(team_num)
+        except aiotba.http.AioTBAError:
+            raise BadArgument(f"Couldn't find data for team {team_num}.")
+        try:
             team_district_data = await self.session.team_districts(team_num)
             if team_district_data:
                 team_district = max(team_district_data, key=lambda d: d.year)
-
         except aiotba.http.AioTBAError:
-            raise BadArgument(f"Couldn't find data for team {team_num}. If this usually works, perhaps TBA is down?")
+            team_district_data = None
+
         e = discord.Embed(color=blurple,
                           title='FIRST® Robotics Competition Team {}'.format(team_num),
                           url='https://www.thebluealliance.com/team/{}'.format(team_num))
