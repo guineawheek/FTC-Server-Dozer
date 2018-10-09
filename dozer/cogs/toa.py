@@ -33,12 +33,12 @@ class TOA(Cog):
         return data
 
     @group(invoke_without_command=True)
-    async def toa(self, ctx, team_num: int):
+    async def toa(self, ctx, team_num: int, year: int = None):
         """
         Get FTC-related information from The Orange Alliance.
         If no subcommand is specified, the `team` subcommand is inferred, and the argument is taken as a team number.
         """
-        await self.team.callback(self, ctx, team_num) # This works but Pylint throws an error
+        await self.team.callback(self, ctx, team_num, year)  # This works but Pylint throws an error
 
     toa.example_usage = """
     `{prefix}toa 5667` - show information on team 5667, the Robominers
@@ -46,7 +46,7 @@ class TOA(Cog):
 
     @toa.command()
     @bot_has_permissions(embed_links=True)
-    async def team(self, ctx, team_num: int):
+    async def team(self, ctx, team_num: int, year: int = None):
         """Get information on an FTC team by number."""
         # Fun fact: this no longer actually queries TOA. It queries a server that provides FIRST data.
         team_data = await self.get_teamdata(team_num) #await self.parser.req("team/" + str(team_num))
@@ -55,7 +55,14 @@ class TOA(Cog):
             await ctx.send("This team does not have any data on it yet, or it does not exist!")
             return
 
-        season_data = team_data['seasons'][0]
+        season_data = None
+        for season in team_data['seasons']:
+            if not year or season['year'] == year:
+                season_data = season
+                break
+        if not season_data:
+            await ctx.send(f"This team did not compete in {year}!")
+            return
 
         # many team entries lack a valid url
         website = (season_data['website']).strip()
@@ -69,6 +76,8 @@ class TOA(Cog):
         e.add_field(name='Rookie Year', value=team_data['rookie_year'])
         e.add_field(name='Location', value=', '.join((season_data["city"], season_data["state_prov"], season_data["country"])))
         e.add_field(name='Website', value=website or 'n/a')
+        if season_data["motto"].strip():
+            e.add_field(name='Motto', value=season_data['motto'])
         #e.add_field(name='Team Info Page', value=f'https://www.theorangealliance.org/teams/{team_num}')
         e.set_footer(text='Triggered by ' + ctx.author.display_name)
         await ctx.send('', embed=e)
