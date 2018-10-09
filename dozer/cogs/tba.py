@@ -51,7 +51,7 @@ class TBA(Cog):
                 team_district = max(team_district_data, key=lambda d: d.year)
 
         except aiotba.http.AioTBAError:
-            raise BadArgument("Couldn't find data for team {}".format(team_num))
+            raise BadArgument(f"Couldn't find data for team {team_num}. If this usually works, perhaps TBA is down?")
         e = discord.Embed(color=blurple,
                           title='FIRST® Robotics Competition Team {}'.format(team_num),
                           url='https://www.thebluealliance.com/team/{}'.format(team_num))
@@ -100,11 +100,12 @@ class TBA(Cog):
                     pages.append(f"**{base} YouTube** \nhttps://youtu.be/{media.foreign_key}")
                     continue
                 else:
+                    print(media.details)
                     name, url, img_url = {
                         "cdphotothread": (
                             "Chief Delphi",
                             "https://www.chiefdelphi.com/media/photos/{media.foreign_key}",
-                            "https://www.chiefdelphi.com/media/img/{media.details['image_partial']}"
+                            "https://www.chiefdelphi.com/media/img/{media.details.get('image_partial')}"
                         ),
                         "imgur": (
                             "Imgur",
@@ -119,7 +120,7 @@ class TBA(Cog):
                         "grabcad": (
                             "GrabCAD",
                             "https://grabcad.com/library/{media.foreign_key}",
-                            "{media.details['model_image']}"
+                            "{media.details.get('model_image')}"
                         )
                     }.get(media.type, (None, None, None))
                     if name is None:
