@@ -215,12 +215,14 @@ class TBA(Cog):
 
         else:
             raise BadArgument('`team_program` should be one of [`frc`, `ftc`]')
-
+        
+        units = 'm'
         # REEEEEEEEEEEE
         if td.country == "USA":
             td.country = "United States of America"
+            units = 'u'
         e = discord.Embed(title=f"Current weather for {team_program.upper()} Team {team_num}:")
-        e.set_image(url="https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0.png"))
+        e.set_image(url="https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0{units}.png"))
         e.set_footer(text="Powered by wttr.in and sometimes TBA")
         await ctx.send(embed=e)
 
