@@ -91,9 +91,6 @@ class TBA(Cog):
             year = datetime.datetime.today().year
         try:
             team_media = await self.session.team_media(team_num, year)
-            if not team_media:
-                await ctx.send(f"Unfortunately, there doesn't seem to be any media for team {team_num} in {year}...")
-                return
 
             pages = []
             base = f"FRC Team {team_num} {year} Media: "
@@ -134,7 +131,10 @@ class TBA(Cog):
                     page.set_image(url=img_url.format(**media.details))
                     pages.append(page)
 
-            await paginate(ctx, pages)
+            if len(pages):
+                await paginate(ctx, pages)
+            else:
+                await ctx.send(f"Unfortunately, there doesn't seem to be any media for team {team_num} in {year}...")
 
         except aiotba.http.AioTBAError:
             raise BadArgument("Couldn't find data for team {}".format(team_num))
