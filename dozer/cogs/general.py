@@ -100,8 +100,7 @@ class General(Cog):
     async def _show_help(self, ctx, start_page, title, description, footer, commands, **format_args):
         """Creates and sends a template help message, with arguments filled in."""
         format_args['prefix'] = ctx.prefix
-        footer = 'FTC Server Dozer Help | {} | Page {}'.format(footer,
-                                                    '{page_num} of {len_pages}')
+        footer = 'FTC Server Dozer Help | {} | Page {}'.format(footer, '{page_num} of {len_pages}')
         # Page info is inserted as a parameter so page_num and len_pages aren't evaluated now
         if commands:
             command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.name), 4))

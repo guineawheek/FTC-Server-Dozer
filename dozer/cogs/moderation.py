@@ -26,6 +26,7 @@ class SafeRoleConverter(RoleConverter):
                 raise
 
 
+# pylint: disable=too-many-public-methods
 class Moderation(Cog):
     """A cog to handle moderation tasks."""
 
@@ -481,7 +482,11 @@ class Moderation(Cog):
     @has_permissions(manage_channels=True)
     @bot_has_permissions(manage_channels=True)
     async def slowmode(self, ctx, slowmode_delay: int):
+        """Set the slowmode message delay for the current channel. Passing 0 disables slowmode."""
         await ctx.channel.edit(slowmode_delay=slowmode_delay, reason=f"Adjusted slowmode at request of {ctx.author}")
+    slowmode.example_usage = """
+    `{prefix}slowmode 20` - set slowmode to 20 seconds per message per user
+    """
 
     @command()
     @has_permissions(ban_members=True)

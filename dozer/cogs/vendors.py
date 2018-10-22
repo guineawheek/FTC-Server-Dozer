@@ -1,3 +1,5 @@
+# pylint: skip-file
+"""incomplete cog, should've been stuck on another branch"""
 import discord
 import aiohttp
 import async_timeout
@@ -13,7 +15,7 @@ class VendorSearcher:
         self.http = http_session
 
     async def get_soup(self, url):
-        async with async_timeout.timeout(5) as _, self.http.get(url) as response:
+        async with self.http.get(url) as response, async_timeout.timeout(5) as _:
             return BeautifulSoup(response.text(), 'html.parser')
 
     async def search(self, query: str) -> dict:

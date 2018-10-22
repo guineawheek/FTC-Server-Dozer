@@ -14,8 +14,7 @@ class TOA(Cog):
     """TOA commands"""
     def __init__(self, bot):
         super().__init__(bot)
-        self.parser = TOAParser(bot.config['toa']['key'], bot.http._session, app_name=bot.config['toa']['app_name'])
-        # The line above has an error (bot.http._session is a protected class)
+        self.parser = TOAParser(bot.config['toa']['key'], bot.http_session, app_name=bot.config['toa']['app_name'])
 
         if not bot.config['toa']['teamdata_url']:
             with gzip.open("ftc_teams.pickle.gz") as f:
@@ -24,8 +23,10 @@ class TOA(Cog):
             self._teams = None
 
     async def get_teamdata(self, team_num: int):
+        """Obtains team data from a separate non-TOA api returning ftc_teams.pickle.gz-like data"""
         if self._teams is None:
-            async with async_timeout.timeout(5) as _, self.bot.http._session.get(urljoin(self.bot.config['toa']['teamdata_url'], str(team_num))) as response:
+            async with self.bot.http_session.get(urljoin(self.bot.config['toa']['teamdata_url'], str(team_num))) as response, \
+                    async_timeout.timeout(5) as _:
                 data = await response.json() if response.status < 400 else {}
         else:
             data = self._teams.get(team_num, {})
@@ -71,14 +72,14 @@ class TOA(Cog):
         e = discord.Embed(color=embed_color,
                           title=f'FIRST® Tech Challenge Team {team_num}',
                           url=f'https://www.theorangealliance.org/teams/{team_num}')
-                          #icon_url='https://cdn.discordapp.com/icons/342152047753166859/de4d258c0cab5bee0b04d406172ec585.jpg')
+                          # icon_url='https://cdn.discordapp.com/icons/342152047753166859/de4d258c0cab5bee0b04d406172ec585.jpg')
         e.add_field(name='Name', value=season_data["name"])
         e.add_field(name='Rookie Year', value=team_data['rookie_year'])
         e.add_field(name='Location', value=', '.join((season_data["city"], season_data["state_prov"], season_data["country"])))
         e.add_field(name='Website', value=website or 'n/a')
         if season_data["motto"].strip():
             e.add_field(name='Motto', value=season_data['motto'])
-        #e.add_field(name='Team Info Page', value=f'https://www.theorangealliance.org/teams/{team_num}')
+        # e.add_field(name='Team Info Page', value=f'https://www.theorangealliance.org/teams/{team_num}')
         e.set_footer(text='Triggered by ' + ctx.author.display_name)
         await ctx.send('', embed=e)
 

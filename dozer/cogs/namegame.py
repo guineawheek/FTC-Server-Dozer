@@ -161,7 +161,8 @@ class NameGame(Cog):
         self.games = {}
 
         tba_config = bot.config['tba']
-        self.tba_parser = aiotba.TBASession(tba_config['key'], self.bot.http._session)  # tbapi.TBAParser(tba_config['key'], cache=False)
+        self.tba_parser = aiotba.TBASession(tba_config['key'], self.bot.http_session)
+        # tbapi.TBAParser(tba_config['key'], cache=False)
 
     @group(invoke_without_command=True)
     async def ng(self, ctx):

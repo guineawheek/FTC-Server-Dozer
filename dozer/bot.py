@@ -49,6 +49,7 @@ class Dozer(commands.Bot):
         self.config = config
         self._restarting = False
         self.check(self.global_checks)
+        self.http_session = self.http._session
 
     async def on_ready(self):
         """Things to run when the bot has initialized and signed in"""

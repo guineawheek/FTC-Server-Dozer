@@ -20,7 +20,7 @@ class Teams(Cog):
             if dbcheck is None:
                 dbtransaction = TeamNumbers(user_id=ctx.author.id, team_number=team_number, team_type=team_type)
                 session.add(dbtransaction)
-                await ctx.send("Team number set!")
+                await ctx.send("Team number set! Note that unlike FRC Dozer, this will not affect your nickname when joining other servers.")
             else:
                 raise BadArgument("You are already associated with that team!")
 
@@ -111,7 +111,8 @@ class Teams(Cog):
 
     async def on_member_join(self, member):
         """Adds a user's team association to their name when they join (if exactly 1 association)"""
-        if True: return
+        if member:  # pylint friendly NOP
+            return
         if member.guild.me.guild_permissions.manage_nicknames:
             with db.Session() as session:
                 query = session.query(TeamNumbers).filter_by(user_id=member.id).first()

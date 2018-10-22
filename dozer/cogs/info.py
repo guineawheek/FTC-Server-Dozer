@@ -20,6 +20,7 @@ try:
 except Exception:
     os_name = "Windows probably"
 
+
 class Info(Cog):
     """Commands for getting information about people and things on Discord."""
 
@@ -95,6 +96,7 @@ class Info(Cog):
 
     @command()
     async def stats(self, ctx):
+        """Get current running internal/hosts stats for the bot"""
         info = await ctx.bot.application_info()
 
         #e = discord.Embed(title=info.name + " Stats", color=discord.Color.blue())
@@ -112,9 +114,12 @@ class Info(Cog):
         }.items()))
         await ctx.send(f"```\n{frame}\n```")#embed=e)
 
+    stats.example_usage = """
+    `{prefix}stats` - get current bot/host stats
+    """
 
     @command()
-    async def afk(self, ctx, *, reason : str = "Not specified"):
+    async def afk(self, ctx, *, reason: str = "Not specified"):
         """Set yourself to AFK so that if you are pinged, the bot can explain your absence."""
         if len(ctx.message.mentions):
             await ctx.send("Please don't mention anyone in your AFK message!")
@@ -133,6 +138,7 @@ class Info(Cog):
     """
 
     async def on_message(self, message):
+        """Primarily handles AFK"""
         ctx = await self.bot.get_context(message)
         if message.content.strip().startswith(f"{ctx.prefix}afk"):
             return
@@ -146,10 +152,13 @@ class Info(Cog):
             await ctx.send(f"**{ctx.author.name}** is no longer AFK!")
             del self.afk_map[ctx.author.id]
 
+
 class AFKStatus(db.DatabaseObject):
+    """Holds AFK data."""
     __tablename__ = "afk_status"
     user_id = db.Column(db.Integer, primary_key=True)
     reason = db.Column(db.String)
+
 
 def setup(bot):
     """Adds the info cog to the bot"""
