@@ -10,6 +10,12 @@ from .. import db
 
 class General(Cog):
     """General commands common to all Discord bots."""
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.name = 'Dozer'
+
+    async def on_ready(self):
+        self.name = (await self.bot.application_info()).name
 
     @command()
     async def ping(self, ctx):
@@ -60,11 +66,11 @@ class General(Cog):
 
     async def _help_all(self, ctx):
         """Gets the help message for all commands."""
-        info = discord.Embed(title='FTC Server Dozer: Info', description='The guild management bot for the FTC server',
+        info = discord.Embed(title=f'{self.name}: Info', description='The guild management bot for the FTC server',
                              color=discord.Color.blue())
         info.set_thumbnail(url=self.bot.user.avatar_url)
         info.add_field(name='About',
-                       value="FTC Server Dozer: A collaborative bot for the FTC Discord server, developed by the FRC "
+                       value=f"{self.name}: A collaborative bot for the FTC Discord server, developed by the FRC "
                              "Discord Server Development Team and @guineawheek#5381")
         info.add_field(name='About `{}{}`'.format(ctx.prefix, ctx.invoked_with), value=inspect.cleandoc("""
         This command can show info for all commands, a specific command, or a category of commands.
@@ -74,10 +80,10 @@ class General(Cog):
                        value="Join our development server at https://discord.gg/ZAmpQPD or ping @guineawheek#5381 for "
                              "support, to help with development, or if you have any questions or comments!")
         info.add_field(name="Open Source",
-                       value="FTC Server Dozer is open source! Feel free to view and contribute to our Python code "
+                       value=f"{self.name} is open source! Feel free to view and contribute to our Python code "
                              "[on Github](https://github.com/guineawheek/FTC-Server-Dozer)")
-        info.set_footer(text='FTC Server Dozer Help | all commands | Info page')
-        await self._show_help(ctx, info, 'FTC Server Dozer: Commands', '', 'all commands', ctx.bot.commands)
+        info.set_footer(text=f'{self.name} Help | all commands | Info page')
+        await self._show_help(ctx, info, f'{self.name}: Commands', '', 'all commands', ctx.bot.commands)
 
     async def _help_command(self, ctx, command):
         """Gets the help message for one command."""
@@ -86,7 +92,7 @@ class General(Cog):
         usage = command.example_usage
         if usage is not None:
             info.add_field(name='Usage', value=usage.format(prefix=ctx.prefix, name=ctx.invoked_with), inline=False)
-        info.set_footer(text='FTC Server Dozer Help | {!r} command | Info'.format(command.qualified_name))
+        info.set_footer(text='{} Help | {!r} command | Info'.format(self.name, command.qualified_name))
         await self._show_help(ctx, info, 'Subcommands: {prefix}{signature}', '', '{command.qualified_name!r} command',
                               command.commands if isinstance(command, Group) else set(), command=command, signature=command.signature)
 
@@ -100,7 +106,7 @@ class General(Cog):
     async def _show_help(self, ctx, start_page, title, description, footer, commands, **format_args):
         """Creates and sends a template help message, with arguments filled in."""
         format_args['prefix'] = ctx.prefix
-        footer = 'FTC Server Dozer Help | {} | Page {}'.format(footer, '{page_num} of {len_pages}')
+        footer = '{} Help | {} | Page {}'.format(self.name, footer, '{page_num} of {len_pages}')
         # Page info is inserted as a parameter so page_num and len_pages aren't evaluated now
         if commands:
             command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.name), 4))
