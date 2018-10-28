@@ -1,7 +1,7 @@
 
 
 # Dozer
-![travis](https://www.travis-ci.org/FRCDiscord/Dozer.svg?branch=master)
+![travis](https://www.travis-ci.org/guineawheek/Dozer.svg?branch=development)
 
 Omnipotent guild management bot for FIRST Discord servers
 
@@ -20,9 +20,9 @@ Table of Contents
 
 ## Setup
 
-### Installing Python 3.6
+### Installing Python 3.6+
 
-run `python -V` to find what version of python you are running. If you are running version 3.6 or newer, feel free to skip this section
+Run `python -V` to find what version of python you are running. If you are running version 3.6 or newer, feel free to skip this section
 
  #### Manually
 
@@ -38,8 +38,8 @@ Many distributions do not have python 3.6 in their repositories yet. If this is 
 
 Instructions for installing are located [here](https://github.com/pyenv/pyenv-installer).
 
-1. `pyenv install 3.6.3` downloads and builds a newer version of python
-2. `pyenv global 3.6.3` sets 3.6.3 as the primary version for the current user
+1. `pyenv install 3.6.6` downloads and builds a newer version of python
+2. `pyenv global 3.6.6` sets 3.6.6 as the primary version for the current user
 3. run `python -V` to ensure that version 3.6 or newer is installed. 
 
 
