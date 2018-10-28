@@ -803,7 +803,10 @@ class GuildMessageLinks(db.DatabaseObject):
 class PunishmentTimerRecord(db.DatabaseObject):
     """Keeps track of current punishment timers in case the bot is restarted."""
     __tablename__ = "punishment_timers"
-    id = db.Column(db.BigInteger, primary_key=True)
+    # the `id` field is autoincremented by sqlalchemy
+    # DON'T change this to a bigint or stuff breaks. whoops.
+    # and when on earth are you going to have more than 2 billion punishment timers going, anyway?
+    id = db.Column(db.Integer, primary_key=True)
     guild_id = db.Column(db.BigInteger)
     actor_id = db.Column(db.BigInteger)
     target_id = db.Column(db.BigInteger)
