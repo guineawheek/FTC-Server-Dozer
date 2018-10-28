@@ -2,11 +2,12 @@
 
 import discord
 import discord.utils
-from discord.ext.commands import cooldown, BucketType, has_permissions, BadArgument
+from discord.ext.commands import cooldown, BucketType, has_permissions, BadArgument, MissingPermissions
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from ._utils import *
 from .. import db
+
 
 class Roles(Cog):
     """Commands for role management."""
@@ -340,6 +341,27 @@ class Roles(Cog):
 
     take.example_usage = """
     `{prefix}take cooldude#1234 Java` - takes any role named Java, giveable or not, from cooldude
+    """
+
+    @command()
+    @bot_has_permissions(manage_roles=True)
+    async def rolecolor(self, ctx, role: discord.Role, color: discord.Color = None):
+        """Displays the color of a given role, or sets it to a new value."""
+        # required perms are conditional based on arguments
+        if color is not None:
+            if not ctx.channel.permissions_for(ctx.author).manage_roles:
+                raise MissingPermissions("manage_roles")
+            await role.edit(color=color)
+            await ctx.send(f"Set role color of `{role}` to `{color}`!")
+        else:
+            await ctx.send(embed=discord.Embed(
+                description=f"The role color of `{role}` is `{color}`",
+                color=role.color
+            ))
+
+    rolecolor.example_usage = """
+    `{prefix}rolecolor "Simbot Red"` - displays the color of the "Simbot Red" role in hexcode format
+    `{prefix}rolecolor Bolb #FCC21B` - set the color of the "Bolb" role to #FCC21B
     """
 
 
