@@ -5,7 +5,7 @@ import sys
 
 from discord.ext.commands import NotOwner
 
-from dozer.bot import DOZER_LOGGER
+from dozer.bot import dozer_logger
 from ._utils import *
 
 
@@ -24,7 +24,7 @@ class Maintenance(Cog):
     async def shutdown(self, ctx):
         """Force-stops the bot."""
         await ctx.send('Shutting down')
-        DOZER_LOGGER.info('Shutting down at request of {}#{} (in {}, #{})'.format(ctx.author.name,
+        dozer_logger.info('Shutting down at request of {}#{} (in {}, #{})'.format(ctx.author.name,
                                                                                   ctx.author.discriminator,
                                                                                   ctx.guild.name,
                                                                                   ctx.channel.name))

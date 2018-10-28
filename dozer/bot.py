@@ -9,15 +9,20 @@ from discord.ext import commands
 
 from . import utils
 
-DOZER_LOGGER = logging.getLogger('dozer')
-DOZER_LOGGER.level = logging.INFO
-DOZER_HANDLER = logging.StreamHandler(stream=sys.stdout)
-DOZER_HANDLER.level = logging.INFO
-DOZER_LOGGER.addHandler(DOZER_HANDLER)
-DOZER_HANDLER.setFormatter(fmt=logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
+# why on earth should logging objects be capitalized?
+dozer_logger = logging.getLogger('dozer')
+dozer_logger.level = logging.DEBUG
+discord_logger = logging.getLogger('discord')
+discord_logger.level = logging.DEBUG
+
+dozer_log_handler = logging.StreamHandler(stream=sys.stdout)
+dozer_log_handler.level = logging.INFO
+dozer_logger.addHandler(dozer_log_handler)
+discord_logger.addHandler(dozer_log_handler)
+dozer_log_handler.setFormatter(fmt=logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
 
 if discord.version_info.major < 1:
-    DOZER_LOGGER.error("Your installed discord.py version is too low "
+    dozer_logger.error("Your installed discord.py version is too low "
                        "%d.%d.%d, please upgrade to at least 1.0.0a",
                        discord.version_info.major,
                        discord.version_info.minor,
@@ -34,7 +39,7 @@ class InvalidContext(commands.CheckFailure):
 
 class DozerContext(commands.Context):
     """Cleans all messages before sending"""
-    async def send(self, content=None, **kwargs): # pylint: disable=arguments-differ
+    async def send(self, content=None, **kwargs):  # pylint: disable=arguments-differ
         if content is not None:
             content = utils.clean(self, content, mass=True, member=False, role=False, channel=False)
         return await super().send(content, **kwargs)
@@ -50,10 +55,12 @@ class Dozer(commands.Bot):
         self._restarting = False
         self.check(self.global_checks)
         self.http_session = self.http._session
+        if 'log_level' in config:
+            dozer_log_handler.setLevel(config['log_level'])
 
     async def on_ready(self):
         """Things to run when the bot has initialized and signed in"""
-        DOZER_LOGGER.info('Signed in as {}#{} ({})'.format(self.user.name, self.user.discriminator, self.user.id))
+        dozer_logger.info('Signed in as {}#{} ({})'.format(self.user.name, self.user.discriminator, self.user.id))
         if self.config['is_backup']:
             status = discord.Status.dnd
         else:
@@ -62,7 +69,7 @@ class Dozer(commands.Bot):
         try:
             await self.change_presence(activity=game, status=status)
         except TypeError:
-            DOZER_LOGGER.warning("You are running an older version of the discord.py rewrite (with breaking changes)! "
+            dozer_logger.warning("You are running an older version of the discord.py rewrite (with breaking changes)! "
                                  "To upgrade, run `pip install -r requirements.txt --upgrade`")
 
     async def get_context(self, message, *, cls=DozerContext):
@@ -92,13 +99,13 @@ class Dozer(commands.Bot):
         else:
             await context.send('```\n%s\n```' % ''.join(traceback.format_exception_only(type(exception), exception)).strip())
             if isinstance(context.channel, discord.TextChannel):
-                DOZER_LOGGER.error('Error in command <%d> (%d.name!r(%d.id) %d(%d.id) %d(%d.id) %d)',
+                dozer_logger.error('Error in command <%d> (%d.name!r(%d.id) %d(%d.id) %d(%d.id) %d)',
                                    context.command, context.guild, context.guild, context.channel, context.channel,
                                    context.author, context.author, context.message.content)
             else:
-                DOZER_LOGGER.error('Error in command <%d> (DM %d(%d.id) %d)', context.command, context.channel.recipient,
+                dozer_logger.error('Error in command <%d> (DM %d(%d.id) %d)', context.command, context.channel.recipient,
                                    context.channel.recipient, context.message.content)
-            DOZER_LOGGER.error(''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
+            dozer_logger.error(''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
 
     @staticmethod
     def format_error(ctx, err, *, word_re=re.compile('[A-Z][a-z]+')):

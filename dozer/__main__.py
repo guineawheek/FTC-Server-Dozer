@@ -17,6 +17,7 @@ config = {
         'app_name': 'Dozer',
         'teamdata_url': ''
     },
+    'log_level': 'INFO',
     'db_url': 'sqlite:///dozer.db',
     'gmaps_key': "PUT GOOGLE MAPS API KEY HERE",
     'tz_url': '',
