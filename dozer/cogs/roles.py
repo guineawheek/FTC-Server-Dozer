@@ -350,14 +350,13 @@ class Roles(Cog):
         # required perms are conditional based on arguments
         if color is not None:
             if not ctx.channel.permissions_for(ctx.author).manage_roles:
-                raise MissingPermissions("manage_roles")
+                raise MissingPermissions(["manage_roles"])
             await role.edit(color=color)
-            await ctx.send(f"Set role color of `{role}` to `{color}`!")
+            message = f"Set role color of `{role}` to **{color}**!"
         else:
-            await ctx.send(embed=discord.Embed(
-                description=f"The role color of `{role}` is `{color}`",
-                color=role.color
-            ))
+            message = f"The role color of `{role}` is **{role.color}**"
+
+        await ctx.send(embed=discord.Embed(description=message, color=role.color))
 
     rolecolor.example_usage = """
     `{prefix}rolecolor "Simbot Red"` - displays the color of the "Simbot Red" role in hexcode format
