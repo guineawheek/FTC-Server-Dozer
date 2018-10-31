@@ -99,12 +99,12 @@ class Dozer(commands.Bot):
         else:
             await context.send('```\n%s\n```' % ''.join(traceback.format_exception_only(type(exception), exception)).strip())
             if isinstance(context.channel, discord.TextChannel):
-                dozer_logger.error('Error in command <%d> (%d.name!r(%d.id) %d(%d.id) %d(%d.id) %d)',
-                                   context.command, context.guild, context.guild, context.channel, context.channel,
-                                   context.author, context.author, context.message.content)
+                dozer_logger.error('Error in command <{0}> ({1.name!r}:({1.id}) {2}:({2.id}) {3}:({3.id}) {4})'.format(context.command, context.guild,
+                                                                                                                context.channel, context.author,
+                                                                                                                context.message.content))
             else:
-                dozer_logger.error('Error in command <%d> (DM %d(%d.id) %d)', context.command, context.channel.recipient,
-                                   context.channel.recipient, context.message.content)
+                dozer_logger.error('Error in command <{0}> (DM {1}:({1}.id) {2})'.format(context.command, context.channel.recipient,
+                                                                                         context.message.content))
             dozer_logger.error(''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
 
     @staticmethod
