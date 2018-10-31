@@ -15,6 +15,7 @@ class General(Cog):
         self.name = 'Dozer'
 
     async def on_ready(self):
+        """Queries the name of the bot on connection to Discord"""
         self.name = (await self.bot.application_info()).name
 
     @command()
