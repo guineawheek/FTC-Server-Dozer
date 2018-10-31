@@ -473,7 +473,7 @@ class Moderation(Cog):
         chn = channel or ctx.channel
         async for message in chn.history(limit=num_to_clear):
             await message.clear_reactions()
-        await ctx.send(f"Cleared reactions on {num_to_clear} messages in {channel.mention}")
+        await ctx.send(f"Cleared reactions on {num_to_clear} messages in {chn.mention}")
     bulkclearreactions.example_usage = """
     `{prefix}bulkclearreactions 50 #general` - clear all reactions from the last 50 messages in #general
     """
