@@ -76,6 +76,8 @@ class General(Cog):
         This command can show info for all commands, a specific command, or a category of commands.
         Use `{0}{1} {1}` for more information.
         """.format(ctx.prefix, ctx.invoked_with)), inline=False)
+        info.add_field(name='Differences from Upstream Dozer', value="[These are documented in detail here]"
+                                                                     "(https://github.com/guineawheek/Dozer/blob/development/EXTRA_FEATURES.md)")
         info.add_field(name='Support',
                        value="Join our development server at https://discord.gg/ZAmpQPD or ping @guineawheek#5381 for "
                              "support, to help with development, or if you have any questions or comments!")

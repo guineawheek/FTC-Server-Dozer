@@ -25,12 +25,14 @@
 ```
 
 ### Backend changes:
- * Fixed some very minor bugs here and there, and made certain code style edits.
+ * Fixed some bugs in Dozer here and there, and made certain code style edits.
  * Team associations auto-setting nicknames upon server entry has been disabled. Instead, 
  the `nicknames` cog saves and restores nicknames on server leave/reentry, similar to how roles
  are restored. This functionality can be disabled on a per-user basis with `%savenick False`.
  * `%timezone` was partially rewritten to use `strftime`, and can be configured to not use the 
  Google Maps API (which now requires a credit card)
+ * `%timezone` has its arguments changed slightly to support FTC teams as well. The command's 
+ arguments are now `%timezone <program> <teamnumber>`
  
  * `%tba` uses `aiotba`, a properly asynchronous TBA library
  * `%tba` and `%toa` embeds have been tweaked to have the title be a link
