@@ -1,10 +1,10 @@
 """Provides commands that pull information from The Orange Alliance, an FTC info API."""
-import gzip
-import pickle
+from urllib.parse import urljoin
 
 import discord
+import async_timeout
 
-from ._toa import *
+from aiotoa import *
 from ._utils import *
 
 embed_color = discord.Color(0xff9800)
@@ -14,24 +14,35 @@ class TOA(Cog):
     """TOA commands"""
     def __init__(self, bot):
         super().__init__(bot)
-        self.parser = TOAParser(bot.config['toa']['key'], bot.http_session, app_name=bot.config['toa']['app_name'])
-
-        if not bot.config['toa']['teamdata_url']:
-            with gzip.open("ftc_teams.pickle.gz") as f:
-                self._teams = pickle.load(f)
-        else:
-            self._teams = None
+        self.parser = TOASession(bot.config['toa']['key'], bot.config['toa']['app_name'], bot.http_session)
 
     async def get_teamdata(self, team_num: int):
         """Obtains team data from a separate non-TOA api returning ftc_teams.pickle.gz-like data"""
-        if self._teams is None:
+        if self.bot.config['toa']['teamdata_url']:
             async with self.bot.http_session.get(urljoin(self.bot.config['toa']['teamdata_url'], str(team_num))) as response, \
                     async_timeout.timeout(5) as _:
-                data = await response.json() if response.status < 400 else {}
+                return await response.json() if response.status < 400 else {}
         else:
-            data = self._teams.get(team_num, {})
-
-        return data
+            try:
+                toa_data = await self.parser.team(team_num)
+            except AioTOAError:
+                return {}
+            return {
+                "number": team_num,
+                "rookie_year": str(toa_data.rookie_year),
+                "seasons": [{
+                    "city": toa_data.city,
+                    "country": toa_data.country,
+                    "location": [0, 0],
+                    "motto": "",
+                    "name": toa_data.team_name_short,
+                    "org": toa_data.team_name_long,
+                    "postal_code": toa_data.zip_code,
+                    "state_prov": toa_data.state_prov,
+                    "website": toa_data.website,
+                    "year": toa_data.rookie_year,
+                }]
+            }
 
     @group(invoke_without_command=True)
     async def toa(self, ctx, team_num: int, year: int = None):
@@ -47,10 +58,10 @@ class TOA(Cog):
 
     @toa.command()
     @bot_has_permissions(embed_links=True)
-    async def team(self, ctx, team_num: int, year: int = None):
+    async def team(self, ctx, team_num: int, year: int=None):
         """Get information on an FTC team by number."""
         # Fun fact: this no longer actually queries TOA. It queries a server that provides FIRST data.
-        team_data = await self.get_teamdata(team_num) #await self.parser.req("team/" + str(team_num))
+        team_data = await self.get_teamdata(team_num)  # await self.parser.req("team/" + str(team_num))
         if not team_data:
             # rip
             await ctx.send("This team does not have any data on it yet, or it does not exist!")
