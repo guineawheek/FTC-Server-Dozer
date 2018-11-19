@@ -50,8 +50,8 @@ class Nicknames(Cog):
 class NicknameTable(db.DatabaseObject):
     """Maintains a record of saved nicknames for various users."""
     __tablename__ = "nicknames"
-    user_id = db.Column(db.Integer, primary_key=True)
-    guild_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.BigInteger, primary_key=True)
+    guild_id = db.Column(db.BigInteger, primary_key=True)
     nickname = db.Column(db.String, nullable=True)
     enabled = db.Column(db.Boolean)
 
