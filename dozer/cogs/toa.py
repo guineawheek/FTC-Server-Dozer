@@ -39,7 +39,7 @@ class TOA(Cog):
                     "org": toa_data.team_name_long,
                     "postal_code": toa_data.zip_code,
                     "state_prov": toa_data.state_prov,
-                    "website": toa_data.website,
+                    "website": toa_data.website or "",
                     "year": toa_data.rookie_year,
                 }]
             }
