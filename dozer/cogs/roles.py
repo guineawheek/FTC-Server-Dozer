@@ -367,17 +367,17 @@ class Roles(Cog):
 class GuildSettings(db.DatabaseObject):
     """Represents a guild's settings in the DB"""
     __tablename__ = 'guilds'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True)
     giveable_roles = db.relationship('GiveableRole', back_populates='guild_settings')
 
 
 class GiveableRole(db.DatabaseObject):
     """Database object for maintaining a list of giveable roles."""
     __tablename__ = 'giveable_roles'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     norm_name = db.Column(db.String(100), nullable=False)
-    guild_id = db.Column(db.Integer, db.ForeignKey('guilds.id'))
+    guild_id = db.Column(db.BigInteger, db.ForeignKey('guilds.id'))
     guild_settings = db.relationship('GuildSettings', back_populates='giveable_roles')
 
     @classmethod
@@ -389,8 +389,8 @@ class GiveableRole(db.DatabaseObject):
 class MissingMember(db.DatabaseObject):
     """Required for the relationship with the MissingRole class and table."""
     __tablename__ = 'missing_members'
-    guild_id = db.Column(db.Integer, primary_key=True)
-    member_id = db.Column(db.Integer, primary_key=True)
+    guild_id = db.Column(db.BigInteger, primary_key=True)
+    member_id = db.Column(db.BigInteger, primary_key=True)
     missing_roles = db.relationship('MissingRole', back_populates='member', cascade='all, delete, delete-orphan')
 
 
@@ -399,9 +399,9 @@ class MissingRole(db.DatabaseObject):
     __tablename__ = 'missing_roles'
     __table_args__ = (
         db.ForeignKeyConstraint(['guild_id', 'member_id'], ['missing_members.guild_id', 'missing_members.member_id']),)
-    role_id = db.Column(db.Integer, primary_key=True)
-    guild_id = db.Column(db.Integer)  # Guild ID doesn't have to be primary because role IDs are unique across guilds
-    member_id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.BigInteger, primary_key=True)
+    guild_id = db.Column(db.BigInteger)  # Guild ID doesn't have to be primary because role IDs are unique across guilds
+    member_id = db.Column(db.BigInteger, primary_key=True)
     role_name = db.Column(db.String(100), nullable=False)
     member = db.relationship('MissingMember', back_populates='missing_roles')
 
