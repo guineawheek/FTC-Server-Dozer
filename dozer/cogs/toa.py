@@ -1,6 +1,7 @@
 """Provides commands that pull information from The Orange Alliance, an FTC info API."""
+from datetime import datetime
 from urllib.parse import urljoin
-
+import json
 import discord
 import async_timeout
 import datetime
@@ -14,7 +15,6 @@ embed_color = discord.Color(0xff9800)
 
 def to_season_key(base_year):
     return f"{(base_year) % 100}{(base_year + 1) % 100}"
-
 
 class TOA(Cog):
     """TOA commands"""
