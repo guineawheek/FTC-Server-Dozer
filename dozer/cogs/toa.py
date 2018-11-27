@@ -14,7 +14,10 @@ embed_color = discord.Color(0xff9800)
 
 
 def to_season_key(base_year):
+    if base_year is None:
+        return None
     return f"{(base_year) % 100}{(base_year + 1) % 100}"
+
 
 class TOA(Cog):
     """TOA commands"""
