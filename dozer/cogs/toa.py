@@ -3,11 +3,17 @@ from urllib.parse import urljoin
 
 import discord
 import async_timeout
+import datetime
 
+import aiotoa.models
 from aiotoa import *
 from ._utils import *
 
 embed_color = discord.Color(0xff9800)
+
+
+def to_season_key(base_year):
+    return f"{(base_year) % 100}{(base_year + 1) % 100}"
 
 
 class TOA(Cog):
@@ -15,6 +21,47 @@ class TOA(Cog):
     def __init__(self, bot):
         super().__init__(bot)
         self.parser = TOASession(bot.config['toa']['key'], bot.config['toa']['app_name'], bot.http_session)
+
+    @staticmethod
+    def get_current_season():
+        """get the current season code based on the date"""
+        today = datetime.datetime.today()
+        year = today.year
+        # ftc kickoff is always the 2nd saturday of september
+        kickoff = [d for d in [datetime.datetime(year=year, month=9, day=i) for i in range(8, 15)] if d.weekday() == 5][0]
+
+        if kickoff > today:
+            return to_season_key(year - 1)
+        else:
+            return to_season_key(year)
+
+    @staticmethod
+    def convert_season(season_key):
+        return {
+            "quadquandary": 2007,
+            "faceoff": 2008,
+            "hotshot": 2009,
+            "getoverit": 2010,
+            "bowledover": 2011,
+            "ringitup": 2012,
+            "blockparty": 2013,
+            "bp": 2013,
+            "cascadeeffect": 2014,
+            "cascade": 2014,
+            "resq": 2015,
+            "velocityvortex": 2016,
+            "vv": 2016,
+            "relicrecovery": 2017,
+            "relic": 2017,
+            "rr": 2017,
+            "roverruckus": 2018,
+            "rover": 2018,
+            "rr2": 2018,
+        }.get(str(season_key).lower().replace("_", "").replace("-", ""), season_key)
+
+    @staticmethod
+    def fmt_season_code(s):
+        return "20" + s[:2] + "-" + "20" + s[2:]
 
     async def get_teamdata(self, team_num: int):
         """Obtains team data from a separate non-TOA api returning ftc_teams.pickle.gz-like data"""
@@ -45,12 +92,12 @@ class TOA(Cog):
             }
 
     @group(invoke_without_command=True)
-    async def toa(self, ctx, team_num: int, year: int = None):
+    async def toa(self, ctx, team_num: int, season: str=None):
         """
         Get FTC-related information from The Orange Alliance.
         If no subcommand is specified, the `team` subcommand is inferred, and the argument is taken as a team number.
         """
-        await self.team.callback(self, ctx, team_num, year)  # This works but Pylint throws an error
+        await self.team.callback(self, ctx, team_num, season)  # This works but Pylint throws an error
 
     toa.example_usage = """
     `{prefix}toa 5667` - show information on team 5667, the Robominers
@@ -58,10 +105,11 @@ class TOA(Cog):
 
     @toa.command()
     @bot_has_permissions(embed_links=True)
-    async def team(self, ctx, team_num: int, year: int=None):
+    async def team(self, ctx, team_num: int, season: str=None):
         """Get information on an FTC team by number."""
         # Fun fact: this no longer actually queries TOA. It queries a server that provides FIRST data.
         team_data = await self.get_teamdata(team_num)  # await self.parser.req("team/" + str(team_num))
+        year = int(self.convert_season(season)) if season else None
         if not team_data:
             # rip
             await ctx.send("This team does not have any data on it yet, or it does not exist!")
@@ -73,7 +121,10 @@ class TOA(Cog):
                 season_data = season
                 break
         if not season_data:
-            await ctx.send(f"This team did not compete in {year}!")
+            if not self.bot.config['toa']['teamdata_url'] and year is not None:
+                await ctx.send("This bot does not have past team registration data available!")
+            else:
+                await ctx.send(f"This team did not compete in the {self.fmt_season_code(to_season_key(int(year)))} season!")
             return
 
         # many team entries lack a valid url
@@ -97,6 +148,50 @@ class TOA(Cog):
     team.example_usage = """
     `{prefix}toa team 11115` - show information on team 11115, Gluten Free
     """
+
+    @toa.command()
+    @bot_has_permissions(embed_links=True)
+    async def events(self, ctx, team_num: int, season=None):
+        """get events for an ftc team defaulting to current year"""
+        season = to_season_key(self.convert_season(season)) or self.get_current_season()
+        fmt_season = self.fmt_season_code(season)
+        try:
+            events = await self.parser.team_events(team_num, season)
+        except AioTOAError:
+            await ctx.send("Couldn't get data!")
+            return
+        e = discord.Embed(color=embed_color,
+                          title=f"Events for FTC team {team_num} in {fmt_season}:")
+        for event in sorted(map(lambda e: e.event, events), key=lambda e: e.start_date, reverse=True):  # type: aiotoa.models.Event
+            # tweak formatting a small bit
+            event.region_key = f"[{event.region_key}]" if event.region_key != "CMP" else ""
+            date_str = event.start_date.strftime(f"%B {event.start_date.day}, %Y")
+            if event.start_date != event.end_date:
+                date_str += event.end_date.strftime(f" - %B {event.end_date.day}, %Y")
+            e.add_field(name=f"{event.region_key} {event.event_name}",
+                        value=f"[[link]](https://theorangealliance.org/events/{event.event_key}) "
+                              f"{event.city}, {event.state_prov} {event.country} | {date_str}",
+                        inline=False)
+
+        await ctx.send(embed=e)
+
+    events.example_usage = """
+    `{prefix}toa events 4174 1617` - list 4174 Atomic Theory's events for the 2016-2017 season, Velocity Vortex
+    """
+
+    @toa.command()
+    @bot_has_permissions(embed_links=True)
+    async def awards(self, ctx, team_num: int, season=None):
+        season = to_season_key(self.convert_season(season)) or self.get_current_season()
+        fmt_season = self.fmt_season_code(season)
+        try:
+            events = await self.parser.team_events(team_num, season)
+        except AioTOAError:
+            await ctx.send("Couldn't get data!")
+            return
+        e = discord.Embed(color=embed_color,
+                          title=f"Awards for FTC team {team_num} in {fmt_season}:")
+        raise NotImplementedError("toa api is broken so this is a TODO")
 
 
 def setup(bot):
