@@ -13,7 +13,13 @@ class Starboard(Cog):
         super().__init__(bot)
         self.config_cache = {}
 
-    def make_starboard_embed(self, msg: discord.Message):
+    def starboard_embed_footer(self, emoji=None, reaction_count=None):
+        if emoji and reaction_count:
+            return f"{reaction_count} {'reactions' if emoji.startswith('<') else emoji} | "
+        else:
+            return ""
+
+    def make_starboard_embed(self, msg: discord.Message, emoji=None, reaction_count=None):
         """Makes a starboard embed."""
         e = discord.Embed(color=discord.Color.gold())
         e.add_field(name="Author", value=msg.author.mention)
@@ -28,7 +34,8 @@ class Starboard(Cog):
             e.add_field(name="Additional attachments:", value="\n".join([a.url for a in msg.attachments[1:]]))
         if len(msg.attachments):
             e.set_image(url=msg.attachments[0].url)
-        e.set_footer(text=str(msg.guild))
+
+        e.set_footer(text=self.starboard_embed_footer(emoji, reaction_count) + str(msg.guild))
         e.timestamp = datetime.datetime.utcnow()
         return e
 
@@ -40,6 +47,25 @@ class Starboard(Cog):
         e.add_field(name="Threshold", value=config.threshold)
         e.set_footer(text=f"For more information, try {ctx.prefix}help starboard")
         return e
+
+    async def send_to_starboard(self, config, msg: discord.Message):
+        with db.Session() as session:
+            starboard_channel = msg.guild.get_channel(config.channel_id)
+            if starboard_channel is None:
+                return
+            msg_ent = session.query(StarboardMessage).filter_by(message_id=msg.id).one_or_none()
+            reaction_count = ([r.count for r in msg.reactions if str(r.emoji) == config.emoji] or [0])[0]
+            if msg_ent:
+                msg_ent.reaction_count = reaction_count
+                starboard_msg = await starboard_channel.get_message(msg_ent.starboard_message_id)
+                prev_embed = starboard_msg.embeds[0]
+                prev_embed.set_footer(text=self.starboard_embed_footer(config.emoji, reaction_count) + str(msg.guild))
+                await starboard_msg.edit(embed=prev_embed)
+                return
+            else:
+                starboard_msg = await starboard_channel.send(embed=self.make_starboard_embed(msg, emoji=config.emoji, reaction_count=reaction_count))
+                msg_ent = StarboardMessage(message_id=msg.id, starboard_message_id=starboard_msg.id, reaction_count=reaction_count)
+                session.add(msg_ent)
 
     async def on_reaction_add(self, reaction, member):
         """Handles core reaction logic."""
@@ -60,13 +86,11 @@ class Starboard(Cog):
             return
 
         if reaction.count >= config.threshold and str(reaction.emoji) == config.emoji and member != msg.guild.me:
-            channel = self.bot.get_channel(config.channel_id)
-            if channel is not None:
-                try:
-                    await msg.add_reaction(reaction.emoji)
-                    await channel.send(embed=self.make_starboard_embed(msg))
-                except discord.DiscordException:
-                    pass
+            try:
+                await self.send_to_starboard(config, msg)
+                await msg.add_reaction(reaction.emoji)
+            except discord.DiscordException:
+                pass
 
     @group(invoke_without_command=True)
     @bot_has_permissions(embed_links=True)
@@ -127,14 +151,16 @@ class Starboard(Cog):
                 elif not starboard_channel.permissions_for(ctx.guild.me).send_messages:
                     await ctx.send("I don't have permissions to add messages to the starboard channel!")
                     return
-                try:
-                    msg = await channel.get_message(message_id)
-                    await starboard_channel.send(embed=self.make_starboard_embed(msg))
-                except discord.NotFound:
-                    await ctx.send(f"Message ID {message_id} was not found in {channel.mention}!")
-
             else:
                 await ctx.send("This server does not have a starboard configured!")
+                return
+        try:
+            msg = await channel.get_message(message_id)
+            await self.send_to_starboard(config, msg)
+        except discord.NotFound:
+            await ctx.send(f"Message ID {message_id} was not found in {channel.mention}!")
+
+        await ctx.send(f"Successfully posted message {message_id} to the starboard!")
 
     add.example_usage = """
     `{prefix}starboard add #channel 1285719825125` - add message with id `1285719825125` in `#channel` to the starboard manually.
@@ -147,6 +173,13 @@ class StarboardConfig(db.DatabaseObject):
     channel_id = db.Column(db.BigInteger)
     emoji = db.Column(db.String)
     threshold = db.Column(db.BigInteger)
+
+
+class StarboardMessage(db.DatabaseObject):
+    __tablename__ = "starboard_messages"
+    message_id = db.Column(db.BigInteger, primary_key=True)
+    starboard_message_id = db.Column(db.BigInteger)
+    reaction_count = db.Column(db.BigInteger)
 
 
 def setup(bot):
