@@ -1,10 +1,8 @@
 """Provides commands that pull information from The Orange Alliance, an FTC info API."""
-from datetime import datetime
 from urllib.parse import urljoin
-import json
+import datetime
 import discord
 import async_timeout
-import datetime
 
 import aiotoa.models
 from aiotoa import *
@@ -14,6 +12,7 @@ embed_color = discord.Color(0xff9800)
 
 
 def to_season_key(base_year):
+    """converts a start year (2017) to a TOA season key (1718)"""
     if base_year is None:
         return None
     return f"{(base_year) % 100}{(base_year + 1) % 100}"
@@ -40,6 +39,7 @@ class TOA(Cog):
 
     @staticmethod
     def convert_season(season_key):
+        """converts season names to start years"""
         return {
             "quadquandary": 2007,
             "faceoff": 2008,
@@ -64,6 +64,7 @@ class TOA(Cog):
 
     @staticmethod
     def fmt_season_code(s):
+        """formats a season key string '1718' as '2017-2018'"""
         return "20" + s[:2] + "-" + "20" + s[2:]
 
     async def get_teamdata(self, team_num: int):
@@ -95,7 +96,7 @@ class TOA(Cog):
             }
 
     @group(invoke_without_command=True)
-    async def toa(self, ctx, team_num: int, season: str=None):
+    async def toa(self, ctx, team_num: int, season: str = None):
         """
         Get FTC-related information from The Orange Alliance.
         If no subcommand is specified, the `team` subcommand is inferred, and the argument is taken as a team number.
@@ -108,7 +109,7 @@ class TOA(Cog):
 
     @toa.command()
     @bot_has_permissions(embed_links=True)
-    async def team(self, ctx, team_num: int, season: str=None):
+    async def team(self, ctx, team_num: int, season: str = None):
         """Get information on an FTC team by number."""
         # Fun fact: this no longer actually queries TOA. It queries a server that provides FIRST data.
         team_data = await self.get_teamdata(team_num)  # await self.parser.req("team/" + str(team_num))
@@ -119,9 +120,9 @@ class TOA(Cog):
             return
 
         season_data = None
-        for season in team_data['seasons']:
-            if not year or season['year'] == year:
-                season_data = season
+        for team_season in team_data['seasons']:
+            if not year or team_season['year'] == year:
+                season_data = team_season
                 break
         if not season_data:
             if not self.bot.config['toa']['teamdata_url'] and year is not None:
@@ -155,7 +156,7 @@ class TOA(Cog):
     @toa.command()
     @bot_has_permissions(embed_links=True)
     async def events(self, ctx, team_num: int, season=None):
-        """get events for an ftc team defaulting to current year"""
+        """Get events for an ftc team defaulting to current year"""
         season = to_season_key(self.convert_season(season)) or self.get_current_season()
         fmt_season = self.fmt_season_code(season)
         try:
@@ -185,6 +186,7 @@ class TOA(Cog):
     @toa.command()
     @bot_has_permissions(embed_links=True)
     async def awards(self, ctx, team_num: int, season=None):
+        """TODO: display awards command"""
         season = to_season_key(self.convert_season(season)) or self.get_current_season()
         fmt_season = self.fmt_season_code(season)
         try:

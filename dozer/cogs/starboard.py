@@ -1,3 +1,4 @@
+"""a cog that handles actions around a starboard/hall of fame"""
 import datetime
 import typing
 import discord
@@ -14,6 +15,7 @@ class Starboard(Cog):
         self.config_cache = {}
 
     def starboard_embed_footer(self, emoji=None, reaction_count=None):
+        """create the footer for a starboard embed"""
         if emoji and reaction_count:
             return f"{reaction_count} {'reactions' if emoji.startswith('<') else emoji} | "
         else:
@@ -49,6 +51,7 @@ class Starboard(Cog):
         return e
 
     async def send_to_starboard(self, config, msg: discord.Message):
+        """Sends a message to the starboard; if the message already exists in the starboard, update the reactions count"""
         with db.Session() as session:
             starboard_channel = msg.guild.get_channel(config.channel_id)
             if starboard_channel is None:
@@ -57,11 +60,13 @@ class Starboard(Cog):
             reaction_count = ([r.count for r in msg.reactions if str(r.emoji) == config.emoji] or [0])[0]
             if msg_ent:
                 msg_ent.reaction_count = reaction_count
-                starboard_msg = await starboard_channel.get_message(msg_ent.starboard_message_id)
+                try:
+                    starboard_msg = await starboard_channel.get_message(msg_ent.starboard_message_id)
+                except discord.NotFound:
+                    return
                 prev_embed = starboard_msg.embeds[0]
                 prev_embed.set_footer(text=self.starboard_embed_footer(config.emoji, reaction_count) + str(msg.guild))
                 await starboard_msg.edit(embed=prev_embed)
-                return
             else:
                 starboard_msg = await starboard_channel.send(embed=self.make_starboard_embed(msg, emoji=config.emoji, reaction_count=reaction_count))
                 msg_ent = StarboardMessage(message_id=msg.id, starboard_message_id=starboard_msg.id, reaction_count=reaction_count)
@@ -168,6 +173,7 @@ class Starboard(Cog):
 
 
 class StarboardConfig(db.DatabaseObject):
+    """Main starboard server config data"""
     __tablename__ = "starboard_config"
     guild_id = db.Column(db.BigInteger, primary_key=True)
     channel_id = db.Column(db.BigInteger)
@@ -176,6 +182,7 @@ class StarboardConfig(db.DatabaseObject):
 
 
 class StarboardMessage(db.DatabaseObject):
+    """Table that lists every starboard message ever"""
     __tablename__ = "starboard_messages"
     message_id = db.Column(db.BigInteger, primary_key=True)
     starboard_message_id = db.Column(db.BigInteger)
