@@ -13,6 +13,8 @@
 %tba media - display a carousel of team media for a given year
 %tba awards - display the awards for a team for a given year
 %weather - display the current weather for an FRC or FTC team
+
+%starboard - commands to configure a starboard/hall of fame
 ```
 
 ### FTC Server Dozer specific commands:
@@ -25,6 +27,7 @@
 ```
 
 ### Backend changes:
+ * Switched to `uvloop` for asyncio event loops for supposedly increased performance.
  * Fixed some bugs in Dozer here and there, and made certain code style edits.
  * Team associations auto-setting nicknames upon server entry has been disabled. Instead, 
  the `nicknames` cog saves and restores nicknames on server leave/reentry, similar to how roles
