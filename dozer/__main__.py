@@ -3,9 +3,13 @@
 import json
 import os
 import sys
+import asyncio
+import uvloop
 from .db import db_init
-
 from . import db
+
+# switch to uvloop for event loops
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 config = {
     'prefix': '&', 'developers': [],
